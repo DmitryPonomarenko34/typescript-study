@@ -1,4 +1,3 @@
-
 type defObj = {
   symbol: string,
   separator: string,
@@ -8,6 +7,14 @@ type defObj = {
   precision: number,
   pattern: string,
   negativePattern: string,
+}
+interface dopFields {
+  increment?: number,
+  useVedic?: boolean,
+  groups?: RegExp,
+  decimal?: string,
+  errorOnInvalid?: boolean,
+  precision?: number,
 }
 
 const defaults: defObj = {
@@ -20,12 +27,6 @@ const defaults: defObj = {
   pattern: '!#',
   negativePattern: '-!#'
 };
-
-interface dopFields extends defObj {
-  increment: number,
-  useVedic: number,
-  groups: RegExp,
-}
 
 const round = (v: number): number => Math.round(v);
 const pow = (p: number): number => Math.pow(10, p);
@@ -44,16 +45,16 @@ const vedicRegex: regEx = /(\d)(?=(\d\d)+\d\b)/g;
 
 class Currency {
   intValue: number;
-  value: number;
-  private _settings: dopFields;
-  private _precision: number;
-
+  value: number | string;
+  _settings: dopFields & defObj;
+  _precision: number;
   constructor(value: number | string | Currency, opts: dopFields) {
-    if (!(this instanceof Currency)) {
-      return new Currency(value, opts);
+
+    if (!(value instanceof Currency)) {
+      this.value = value;
     }
 
-    let settings = Object.assign({}, defaults, opts)
+    let settings = (<any>Object).assign({}, defaults, opts)
       , precision = pow(settings.precision)
       , v = parse(this.value, settings);
 
@@ -82,7 +83,7 @@ class Currency {
    * @returns {Currency}
    */
 
-   add (number: number): Currency {
+  add(number: number): Currency {
     let { intValue, _settings, _precision } = this;
     return new Currency((intValue += parse(number, _settings)) / _precision, _settings);
   }
@@ -92,7 +93,7 @@ class Currency {
    * @param {number} number
    * @returns {Currency}
    */
-  subtract(number:number):Currency {
+  subtract(number: number): Currency {
     let { intValue, _settings, _precision } = this;
     return new Currency((intValue -= parse(number, _settings)) / _precision, _settings);
   }
@@ -102,9 +103,9 @@ class Currency {
    * @param {number} number
    * @returns {Currency}
    */
-  multiply(number:number):Currency {
+  multiply(number: number): Currency {
     let { intValue, _settings } = this;
-    return new Currency((intValue *= number) / pow(_settings.precision), _settings); 
+    return new Currency((intValue *= number) / pow(_settings.precision), _settings);
   }
 
   /**
@@ -112,7 +113,7 @@ class Currency {
    * @param {number} number
    * @returns {Currency}
    */
-  divide(number:number): Currency {
+  divide(number: number): Currency {
     let { intValue, _settings } = this;
     return new Currency(intValue /= parse(number, _settings, false), _settings);
   }
@@ -146,6 +147,8 @@ class Currency {
    * @returns {number}
    */
   dollars(): number {
+    console.log(this.value);
+
     return ~~this.value;
   }
 
@@ -170,7 +173,7 @@ class Currency {
       , cents = values[1];
 
     // set symbol formatting
-    typeof(useSymbol) === 'undefined' && (useSymbol = formatWithSymbol);
+    typeof (useSymbol) === 'undefined' && (useSymbol = formatWithSymbol);
 
     return (this.value >= 0 ? pattern : negativePattern)
       .replace('!', useSymbol ? symbol : '')
@@ -181,6 +184,7 @@ class Currency {
    * Formats the value as a string according to the formatting settings.
    * @returns {string}
    */
+
   toString(): string {
     let { intValue, _precision, _settings } = this;
     return rounding(intValue / _precision, _settings.increment).toFixed(_settings.precision);
@@ -194,7 +198,6 @@ class Currency {
     return this.value;
   }
 }
-
 
 function parse(value: number | string | Currency, opts: dopFields, useRounding = true) {
 
@@ -215,7 +218,7 @@ function parse(value: number | string | Currency, opts: dopFields, useRounding =
       * precision                // scale number to integer value
     v = v || 0;
   } else {
-    if(errorOnInvalid) {
+    if (errorOnInvalid) {
       throw Error('Invalid Input');
     }
     v = 0;
